@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthRegisterRequestDto {
-    private String name;
+    private String username;
+    private String Lastname;
     private String password;
+    private String email;
+    private String name;
     private Rol rol;
-    private Long personId;
 }

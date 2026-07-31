@@ -69,45 +69,32 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto register(AuthRegisterRequestDto request) {
-
-        if (request.getName() == null || request.getName().isBlank()) {
-            throw new InvalidRequestException("Username is required");
-        }
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new InvalidRequestException("Password is required");
-        }
-        if (request.getRol() == null) {
-            throw new InvalidRequestException("Role is required");
-        }
-        if (request.getPersonId() == null) {
-            throw new InvalidRequestException("Person id is required");
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new BusinessException("Username already in use: " + request.getUsername());
         }
 
 
-        if (userRepository.existsByUsername(request.getName())) {
-            throw new BusinessException("Username already in use: " + request.getName());
-        }
+        Person person = new Person();
+        person.setName(request.getName());
+        person.setLastname(request.getLastname());
+        person.setEmail(request.getEmail());
+        person.setState(State.ACTIVE);
+        person = personRepository.save(person);
 
-        Person person = personRepository.findById(request.getPersonId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Person not found with id: " + request.getPersonId()));
 
         ensureRoleEntity(person, request.getRol());
 
-
         User user = new User();
-        user.setUsername(request.getName());
+        user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPerson(person);
         userRepository.save(user);
 
-        log.info("User registered. username={}, personId={}", user.getUsername(), person.getId());
-
+        log.info("User registered. username={}, personId={}, rol={}",
+                user.getUsername(), person.getId(), request.getRol());
 
         String token = jwtUtil.generateToken(user.getUsername());
-        AuthResponseDto response = new AuthResponseDto();
-        response.setToken(token);
-        return response;
+        return new AuthResponseDto(token);
     }
 
 

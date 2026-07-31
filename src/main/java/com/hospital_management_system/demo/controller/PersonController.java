@@ -32,6 +32,8 @@ public class PersonController {
             @ApiResponse(responseCode = "201", description = "Person created"),
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
+
+
     @PostMapping
     public ResponseEntity<PersonResponseDto> createPerson(@Valid @RequestBody PersonRequestDto requestDto) {
         log.info("Create person request received: {}", requestDto);
