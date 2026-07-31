@@ -324,38 +324,6 @@ Example — create a person (`POST /api/persons`):
 }
 ```
 
----
-
-## 🌱 Loading sample data (seed)
-
-The project includes a SQL script (`seed_hospital.sql`) that loads a coherent set of people, users, patients, employees, specialties, and appointments, so you can test every filter at once. Run it against the `hospital_db` database (pgAdmin, DBeaver, or `psql`):
-
-```bash
-psql -U admin -d hospital_db -f seed_hospital.sql
-```
-
----
-
-## 🧠 Design decisions
-
-- **Manual mapping instead of MapStruct**: explicit mapping methods (`toEntity` / `toResponse`) were chosen to keep full control over conversions — including nested objects (`appointment.patient.person`) — and to avoid the complexity of annotation processing.
-- **Secrets out of the code**: the JWT secret and sensitive credentials are never versioned; they are injected via a local file or an environment variable.
-- **`ddl-auto=update`**: the schema evolves without losing data between restarts (suitable for development; Flyway/Liquibase is recommended for production).
-- **DTOs separated per operation**: `*RequestDto` and `*ResponseDto` decouple the API contract from the persistence model.
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Migration to **microservices** by *bounded contexts* (auth, patient, staff, booking) with an API Gateway.
-- [ ] Asynchronous communication with **Kafka / RabbitMQ**.
-- [ ] Resilience with **Resilience4j** (circuit breaker).
-- [ ] Application **Dockerfile** + full `docker-compose`.
-- [ ] Database migrations with **Flyway**.
-- [ ] **Test** coverage (unit & integration).
-- [ ] Observability (correlated logs with `traceId`).
-
----
 
 ## 👤 Author
 
