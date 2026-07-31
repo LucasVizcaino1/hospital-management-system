@@ -17,6 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -42,6 +45,7 @@ public class AppointmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List all appointments (paginated)")
     @GetMapping
     public ResponseEntity<Page<AppointmentResponseDto>> getAllAppointments(@ParameterObject Pageable pageable) {
@@ -49,6 +53,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAllAppointments(pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List appointments by date range (paginated)")
     @GetMapping("/dates")
     public ResponseEntity<Page<AppointmentResponseDto>> getAppointmentsByDateRange(
@@ -60,6 +65,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAppointmentsByDateRange(startDate, endDate, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Search appointments by reason (paginated)")
     @GetMapping("/search")
     public ResponseEntity<Page<AppointmentResponseDto>> searchByReason(
@@ -70,6 +76,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.searchByReason(reason, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List appointments by state (paginated)")
     @GetMapping("/status")
     public ResponseEntity<Page<AppointmentResponseDto>> getAppointmentsByStatus(
@@ -80,6 +87,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAppointmentsByStatus(status, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List appointments of a specific patient (paginated)")
     @GetMapping("/patient/{patientId}")
     public ResponseEntity<Page<AppointmentResponseDto>> getAppointmentsByPatient(
@@ -90,6 +98,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAppointmentsByPatient(patientId, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List appointments of a specific employee (paginated)")
     @GetMapping("/employee/{employeeId}")
     public ResponseEntity<Page<AppointmentResponseDto>> getAppointmentsByEmployee(
@@ -100,6 +109,7 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAppointmentsByEmployee(employeeId, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Get an appointment by its ID")
     @GetMapping("/{id}")
     public ResponseEntity<AppointmentResponseDto> getAppointmentById(@PathVariable Long id) {
@@ -107,6 +117,8 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getAppointmentById(id));
     }
 
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Update an existing appointment")
     @PutMapping("/{id}")
     public ResponseEntity<AppointmentResponseDto> updateAppointment(
@@ -117,11 +129,22 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete an appointment")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAppointment(@PathVariable Long id) {
         log.info("Delete appointment request for id={}", id);
         appointmentService.deleteAppointment(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('PATIENT')")
+    @GetMapping("/patient-Appointment")
+    public ResponseEntity<Page<AppointmentResponseDto>> myAppointments(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @ParameterObject Pageable pageable) {
+        return ResponseEntity.ok(
+                appointmentService.getAuthenticatedPatientAttentions(userDetails.getUsername(), pageable));
     }
 }

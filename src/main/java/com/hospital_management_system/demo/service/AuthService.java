@@ -6,7 +6,8 @@ import com.hospital_management_system.demo.dto.response.AuthResponseDto;
 import com.hospital_management_system.demo.dto.response.MessageResponseDto;
 
 public interface AuthService {
-    MessageResponseDto register(AuthRegisterRequestDto request);
+
+    AuthResponseDto register(AuthRegisterRequestDto request);
 
     AuthResponseDto login(AuthLoginRequestDto request);
 }

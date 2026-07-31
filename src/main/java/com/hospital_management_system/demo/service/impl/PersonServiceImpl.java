@@ -93,9 +93,6 @@ public class PersonServiceImpl implements PersonService {
         personRepository.deleteById(id);
     }
 
-    // ============================================
-    // 🔧 MÉTODOS DE MAPEO MANUAL (reemplazan a MapStruct)
-    // ============================================
 
     private Person toEntity(PersonRequestDto dto) {
         if (dto == null) return null;

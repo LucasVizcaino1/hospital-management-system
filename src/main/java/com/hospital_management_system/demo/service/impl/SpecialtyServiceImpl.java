@@ -59,7 +59,7 @@ public class SpecialtyServiceImpl implements SpecialtyService {
     @Transactional(readOnly = true)
     public SpecialtyResponseDto getById(Long id) {
         return specialtyRepository.findById(id)
-                .map(this::toResponse)                           // ✅ era specialtyMapper::toResponse
+                .map(this::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id: " + id));
     }
 
@@ -67,14 +67,14 @@ public class SpecialtyServiceImpl implements SpecialtyService {
     @Transactional(readOnly = true)
     public Page<SpecialtyResponseDto> getAllSpecialties(Pageable pageable) {
         return specialtyRepository.findAll(pageable)
-                .map(this::toResponse);                          // ✅ era specialtyMapper::toResponse
+                .map(this::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<SpecialtyResponseDto> searchByName(String nombre, Pageable pageable) {
         return specialtyRepository.searchByName(nombre, pageable)
-                .map(this::toResponse);                          // ✅ era specialtyMapper::toResponse
+                .map(this::toResponse);
     }
 
     @Override
@@ -86,12 +86,9 @@ public class SpecialtyServiceImpl implements SpecialtyService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Estado inválido: " + stateStr);
         }
-        return specialtyRepository.findByState(state, pageable).map(this::toResponse);  // ✅ era specialtyMapper::toResponse
+        return specialtyRepository.findByState(state, pageable).map(this::toResponse);
     }
 
-    // ============================================
-    // 🔧 MAPEO MANUAL (reemplaza a MapStruct)
-    // ============================================
 
     private Specialty toEntity(SpecialtyRequestDto dto) {
         if (dto == null) return null;

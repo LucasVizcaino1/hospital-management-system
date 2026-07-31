@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,6 +26,7 @@ public class PersonController {
 
     private final PersonService personService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Create a new person")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Person created"),
@@ -37,6 +39,7 @@ public class PersonController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List all persons (paginated)")
     @GetMapping
     public ResponseEntity<Page<PersonResponseDto>> getAllPersons(@ParameterObject Pageable pageable) {
@@ -44,6 +47,7 @@ public class PersonController {
         return ResponseEntity.ok(personService.getAllPersons(pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Get a person by its ID")
     @GetMapping("/{id}")
     public ResponseEntity<PersonResponseDto> getPersonById(@PathVariable Long id) {
@@ -51,6 +55,7 @@ public class PersonController {
         return ResponseEntity.ok(personService.getPersonById(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List persons by state (paginated)")
     @GetMapping("/state/{state}")
     public ResponseEntity<Page<PersonResponseDto>> getPersonsByState(
@@ -60,6 +65,7 @@ public class PersonController {
         return ResponseEntity.ok(personService.getPersonsByState(state, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Search persons by name (paginated)")
     @GetMapping("/search")
     public ResponseEntity<Page<PersonResponseDto>> searchByName(
@@ -69,6 +75,7 @@ public class PersonController {
         return ResponseEntity.ok(personService.searchByName(name, pageable));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update a person")
     @PutMapping("/{id}")
     public ResponseEntity<PersonResponseDto> updatePerson(
@@ -78,6 +85,7 @@ public class PersonController {
         return ResponseEntity.ok(personService.updatePerson(id, requestDto));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete a person")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePerson(@PathVariable Long id) {

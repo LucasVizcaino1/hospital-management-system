@@ -27,7 +27,7 @@ public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
     private final PersonRepository personRepository;
-    // ❌ ELIMINADO: private final PatientMapper patientMapper;
+
 
     @Override
     @Transactional
@@ -35,12 +35,12 @@ public class PatientServiceImpl implements PatientService {
         Person person = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + dto.getPersonId()));
 
-        Patient patient = toEntity(dto);                    // ✅ era patientMapper.toEntity
+        Patient patient = toEntity(dto);
         patient.setPerson(person);
         patient = patientRepository.save(patient);
 
         log.info("Patient created. id={}", patient.getId());
-        return toResponse(patient);                          // ✅ era patientMapper.toResponse
+        return toResponse(patient);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class PatientServiceImpl implements PatientService {
     public PatientResponseDto getPatientById(Long id) {
         log.info("Getting patient with id={}", id);
         return patientRepository.findById(id)
-                .map(this::toResponse)                       // ✅ era patientMapper::toResponse
+                .map(this::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
     }
 
@@ -59,17 +59,17 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
 
-        updateEntity(patient, dto);                          // ✅ era patientMapper.updateEntity
+        updateEntity(patient, dto);
 
         if (dto.getPersonId() != null && !dto.getPersonId().equals(patient.getPerson().getId())) {
             Person person = personRepository.findById(dto.getPersonId())
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + dto.getPersonId()));
-            patient.setPerson(person);   // después del updateEntity, para que gane el objeto completo
+            patient.setPerson(person);
         }
 
         Patient updated = patientRepository.save(patient);
         log.info("Patient updated. id={}", updated.getId());
-        return toResponse(updated);                          // ✅ era patientMapper.toResponse
+        return toResponse(updated);
     }
 
     @Override
@@ -86,14 +86,14 @@ public class PatientServiceImpl implements PatientService {
     @Transactional(readOnly = true)
     public Page<PatientResponseDto> getAllPatients(Pageable pageable) {
         log.info("Listing patients page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
-        return patientRepository.findAll(pageable).map(this::toResponse);   // ✅ era patientMapper::toResponse
+        return patientRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PatientResponseDto> getAllPatientsByState(State state, Pageable pageable) {
         log.info("Listing patients by state={}", state);
-        return patientRepository.findByState(state, pageable).map(this::toResponse);  // ✅ era patientMapper::toResponse
+        return patientRepository.findByState(state, pageable).map(this::toResponse);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class PatientServiceImpl implements PatientService {
     public List<PatientResponseDto> listAssets() {
         log.info("Listing all active patients");
         return patientRepository.findByState(State.ACTIVE).stream()
-                .map(this::toResponse)                       // ✅ era patientMapper::toResponse
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 

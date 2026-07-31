@@ -9,9 +9,7 @@ import com.hospital_management_system.demo.exception.BusinessException;
 import com.hospital_management_system.demo.exception.InvalidRequestException;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
 import com.hospital_management_system.demo.model.*;
-import com.hospital_management_system.demo.repository.AppointmentRepository;
-import com.hospital_management_system.demo.repository.EmployeeRepository;
-import com.hospital_management_system.demo.repository.PatientRepository;
+import com.hospital_management_system.demo.repository.*;
 import com.hospital_management_system.demo.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +28,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final PatientRepository patientRepository;
     private final EmployeeRepository employeeRepository;
     private final AppointmentRepository appointmentRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -185,19 +184,21 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Page<AppointmentResponseDto> getAuthenticatedPatientAttentions(String username, Pageable pageable) {
-        Patient patient = patientRepository.findByUserUsername(username)
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+
+        Patient patient = patientRepository.findByPerson(user.getPerson())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Patient not found for the authenticated user"));
+                        "Patient not found for the authenticated user: " + username));
 
         return appointmentRepository.findByPatient(patient, pageable)
                 .map(this::toResponse);
     }
 
-    // ============================================
-    // 🔧 MÉTODOS DE MAPEO MANUAL (reemplazan a MapStruct)
-    // ============================================
 
     private Appointment toEntity(AppointmentRequestDto dto) {
         if (dto == null) return null;

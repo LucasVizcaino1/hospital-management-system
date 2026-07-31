@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class PatientController {
 
     private final PatientService patientService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Create a new patient")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Patient created"),
@@ -40,6 +42,7 @@ public class PatientController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List all patients (paginated)")
     @GetMapping
     public ResponseEntity<Page<PatientResponseDto>> getAllPatients(@ParameterObject Pageable pageable) {
@@ -47,6 +50,8 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getAllPatients(pageable));
     }
 
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List active patients")
     @GetMapping("/active")
     public ResponseEntity<List<PatientResponseDto>> getActivePatients() {
@@ -55,6 +60,8 @@ public class PatientController {
         return ResponseEntity.ok(patients);
     }
 
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List patients by state (paginated)")
     @GetMapping("/state/{state}")
     public ResponseEntity<Page<PatientResponseDto>> getPatientsByState(
@@ -65,6 +72,7 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getAllPatientsByState(state, pageable));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Get a patient by its ID")
     @GetMapping("/{id}")
     public ResponseEntity<PatientResponseDto> getPatientById(@PathVariable Long id) {
@@ -72,6 +80,7 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getPatientById(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Update a patient")
     @PutMapping("/{id}")
     public ResponseEntity<PatientResponseDto> updatePatient(
@@ -82,6 +91,7 @@ public class PatientController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Delete a patient")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePatient(@PathVariable Long id) {

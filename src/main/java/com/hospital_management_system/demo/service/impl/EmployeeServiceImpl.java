@@ -28,7 +28,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PersonRepository personaRepository;
-    // ❌ ELIMINADO: private final EmployeeMapper employeeMapper;
+
 
     @Override
     @Transactional
@@ -36,12 +36,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         Person person = personaRepository.findById(requestDto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Persona no encontrada con id: " + requestDto.getPersonId()));
 
-        Employee employee = toEntity(requestDto);          // ✅ era employeeMapper.toEntity
+        Employee employee = toEntity(requestDto);
         employee.setPerson(person);
         employee = employeeRepository.save(employee);
 
         log.info("Empleado creado. id={}", employee.getId());
-        return toResponse(employee);                        // ✅ era employeeMapper.toResponse
+        return toResponse(employee);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public List<EmployeeResponseDto> allEmployees() {
         return employeeRepository.findAll()
                 .stream()
-                .map(this::toResponse)                      // ✅ era employeeMapper::toResponse
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -57,7 +57,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional(readOnly = true)
     public Page<EmployeeResponseDto> getEmployeeByState(String estado, Pageable pageable) {
         Page<Employee> page = employeeRepository.findByState(Enum.valueOf(State.class, estado.toUpperCase()), pageable);
-        return page.map(this::toResponse);                  // ✅ era employeeMapper::toResponse
+        return page.map(this::toResponse);
     }
 
     @Override
@@ -72,35 +72,32 @@ public class EmployeeServiceImpl implements EmployeeService {
             employee.setPerson(persona);
         }
 
-        updateEntity(employee, dto);                        // ✅ era employeeMapper.updateEntity
+        updateEntity(employee, dto);
 
         Employee updateEmpleado = employeeRepository.save(employee);
 
         log.info("Empleado actualizado. id={}", employee.getId());
-        return toResponse(updateEmpleado);                  // ✅ era employeeMapper.toResponse
+        return toResponse(updateEmpleado);
     }
 
     @Override
     @Transactional
     public void deleteEmployee(Long id) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found by id: " + id));
 
         employeeRepository.delete(employee);
 
-        log.info("Empleado eliminado. id={}", id);
+        log.info("Employee deleted. id={}", id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<EmployeeResponseDto> getEmployeeById(Long id) {
         return employeeRepository.findById(id)
-                .map(this::toResponse);                     // ✅ era employeeMapper::toResponse
+                .map(this::toResponse);
     }
 
-    // ============================================
-    // 🔧 MAPEO MANUAL (reemplaza a MapStruct)
-    // ============================================
 
     private Employee toEntity(EmployeeRequestDto dto) {
         if (dto == null) return null;

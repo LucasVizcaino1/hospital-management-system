@@ -9,9 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponseDto {
 
-    private ErrorResponseDto message;
     private String token;
-    private String typeOfToken;
 
 
 }

@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +25,7 @@ public class SpecialtyController {
 
     private final SpecialtyService specialtyService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create a new specialty")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Specialty created"),
@@ -70,6 +72,7 @@ public class SpecialtyController {
         return ResponseEntity.ok(specialtyService.getById(id));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update a specialty")
     @PutMapping("/{id}")
     public ResponseEntity<SpecialtyResponseDto> updateSpecialty(
@@ -80,6 +83,7 @@ public class SpecialtyController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete a specialty")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSpecialty(@PathVariable Long id) {

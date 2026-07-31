@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create a new employee")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Employee created"),
@@ -41,6 +43,7 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List all employees")
     @GetMapping
     public ResponseEntity<List<EmployeeResponseDto>> getAllEmployees() {
@@ -49,6 +52,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employees);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "Get an employee by its ID")
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponseDto> getEmployeeById(@PathVariable Long id) {
@@ -58,6 +62,7 @@ public class EmployeeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDIC')")
     @Operation(summary = "List employees by state (paginated)")
     @GetMapping("/status/{state}")
     public ResponseEntity<Page<EmployeeResponseDto>> getEmployeesByState(
@@ -68,6 +73,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getEmployeeByState(state.name(), pageable));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update an employee")
     @PutMapping("/{id}")
     public ResponseEntity<EmployeeResponseDto> updateEmployee(
@@ -78,6 +84,8 @@ public class EmployeeController {
         return ResponseEntity.ok(response);
     }
 
+
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete an employee")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {

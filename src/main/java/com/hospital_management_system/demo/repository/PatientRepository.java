@@ -20,6 +20,8 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     List<Patient> findByState(State state);
 
+    Optional<Patient> findByPerson(Person person);
+
     Page<Patient> findByState(State state, Pageable pageable);
 
     boolean existsByPerson(Person person);
