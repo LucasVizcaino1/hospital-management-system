@@ -1,24 +1,26 @@
 package com.hospital_management_system.demo.security;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.hospital_management_system.demo.exception.InvalidTokenException;
+import com.hospital_management_system.demo.exception.TokenExpiredException;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 @Component
+@Slf4j
 public class JwtUtil {
+
+    private static final String ISSUER = "hospital-api";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -26,61 +28,89 @@ public class JwtUtil {
     @Value("${jwt.expirationMs}")
     private Long expirationMs;
 
+    private SecretKey signingKey;
 
-    public String generateToken(String username) {
-        return generateToken(new HashMap<>(), username);
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException(
+                    "JWT secret must be at least 256 bits (32 bytes). " +
+                            "Generate one with KeyGenerator.main()");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        log.info("✅ JWT signing key initialized ({} bytes)", keyBytes.length);
     }
 
+    public String generateToken(String username, String rol, Long userId, Long principalId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("rol", rol);
+        claims.put("userId", userId);
+        claims.put("principalId", principalId);
 
-    public String generateToken(Map<String, Object> extraClaims, String username) {
         return Jwts.builder()
-                .claims(extraClaims)
+                .claims(claims)
                 .subject(username)
-                .issuedAt(new Date(System.currentTimeMillis()))
+                .issuer(ISSUER)
+                .audience().add(ISSUER).and()
+                .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
+    public String generateToken(String username, String rol) {
+        return generateToken(username, rol, null, null);
+    }
 
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        return extractAllClaims(token).getSubject();
     }
 
+    public String extractRol(String token) {
+        return extractAllClaims(token).get("rol", String.class);
+    }
+
+    public Long extractUserId(String token) {
+        return extractAllClaims(token).get("userId", Long.class);
+    }
+
+    public Long extractPrincipalId(String token) {
+        return extractAllClaims(token).get("principalId", Long.class);
+    }
 
     public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+        return extractAllClaims(token).getExpiration();
     }
 
-
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    public boolean isTokenValid(String token, String expectedUsername) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return expectedUsername.equals(claims.getSubject())
+                    && !claims.getExpiration().before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid JWT: {}", e.getMessage());
+            return false;
+        }
     }
-
-
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }
-
-
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
-
-
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            return Jwts.parser()
+                    .verifyWith(signingKey)
+                    .requireIssuer(ISSUER)
+                    .requireAudience(ISSUER)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("Token has expired");
+        } catch (MalformedJwtException e) {
+            throw new InvalidTokenException("Malformed token");
+        } catch (SignatureException e) {
+            throw new InvalidTokenException("Invalid signature");
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidTokenException("Invalid token: " + e.getMessage());
+        }
     }
 }

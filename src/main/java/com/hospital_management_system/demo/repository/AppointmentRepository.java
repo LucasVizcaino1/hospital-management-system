@@ -20,7 +20,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Page<Appointment> findByEmployee(Employee employee, Pageable pageable);
 
-    Page<Appointment> findByState(State estado, Pageable pageable);
+    Page<Appointment> findByState(State state, Pageable pageable);
 
     Page<Appointment> findByDateBetween(LocalDateTime start, LocalDateTime fin, Pageable pageable);
 

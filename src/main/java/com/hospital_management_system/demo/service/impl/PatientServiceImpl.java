@@ -6,6 +6,7 @@ import com.hospital_management_system.demo.dto.response.PersonResponseDto;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
 import com.hospital_management_system.demo.model.Patient;
 import com.hospital_management_system.demo.model.Person;
+import com.hospital_management_system.demo.model.Rol;
 import com.hospital_management_system.demo.model.State;
 import com.hospital_management_system.demo.repository.PatientRepository;
 import com.hospital_management_system.demo.repository.PersonRepository;
@@ -33,14 +34,45 @@ public class PatientServiceImpl implements PatientService {
     @Transactional
     public PatientResponseDto createPatient(PatientRequestDto dto) {
         Person person = personRepository.findById(dto.getPersonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + dto.getPersonId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Person not found with id: " + dto.getPersonId()));
 
-        Patient patient = toEntity(dto);
+        Patient patient = new Patient();
+        // ✅ ROL FORZADO EN EL SERVICE
+        patient.setRol(Rol.PATIENT);
+        patient.setState(dto.getState());
         patient.setPerson(person);
+
         patient = patientRepository.save(patient);
 
-        log.info("Patient created. id={}", patient.getId());
+        log.info("Patient created. id={}, rol=PATIENT (forced)", patient.getId());
         return toResponse(patient);
+    }
+
+
+    @Override
+    @Transactional
+    public PatientResponseDto updatePatient(Long id, PatientRequestDto dto) {
+        log.info("Updating patient with id={}", id);
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Patient not found with id: " + id));
+
+        // ✅ Solo actualizamos el estado, NUNCA el rol
+        if (dto.getState() != null) {
+            patient.setState(dto.getState());
+        }
+
+        if (dto.getPersonId() != null && !dto.getPersonId().equals(patient.getPerson().getId())) {
+            Person person = personRepository.findById(dto.getPersonId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Person not found with id: " + dto.getPersonId()));
+            patient.setPerson(person);
+        }
+
+        Patient updated = patientRepository.save(patient);
+        log.info("Patient updated. id={}", updated.getId());
+        return toResponse(updated);
     }
 
     @Override
@@ -52,25 +84,6 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
     }
 
-    @Override
-    @Transactional
-    public PatientResponseDto updatePatient(Long id, PatientRequestDto dto) {
-        log.info("Updating patient with id={}", id);
-        Patient patient = patientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
-
-        updateEntity(patient, dto);
-
-        if (dto.getPersonId() != null && !dto.getPersonId().equals(patient.getPerson().getId())) {
-            Person person = personRepository.findById(dto.getPersonId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + dto.getPersonId()));
-            patient.setPerson(person);
-        }
-
-        Patient updated = patientRepository.save(patient);
-        log.info("Patient updated. id={}", updated.getId());
-        return toResponse(updated);
-    }
 
     @Override
     @Transactional
@@ -105,20 +118,11 @@ public class PatientServiceImpl implements PatientService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Long getIdByUsername(String username) {
-        log.info("Getting patient id for user: {}", username);
-        Patient patient = patientRepository.findByUserUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient not found for user: " + username));
-        return patient.getId();
-    }
 
     private Patient toEntity(PatientRequestDto dto) {
         if (dto == null) return null;
 
         Patient patient = new Patient();
-        patient.setRol(dto.getRol());
         patient.setState(dto.getState());
         return patient;
     }
@@ -137,9 +141,8 @@ public class PatientServiceImpl implements PatientService {
     private void updateEntity(Patient patient, PatientRequestDto dto) {
         if (patient == null || dto == null) return;
 
-        if (dto.getRol() != null)   patient.setRol(dto.getRol());
+
         if (dto.getState() != null) patient.setState(dto.getState());
-        // person ya lo actualiza updatePatient() después de llamar a esto.
     }
 
     private PersonResponseDto toPersonResponse(Person person) {

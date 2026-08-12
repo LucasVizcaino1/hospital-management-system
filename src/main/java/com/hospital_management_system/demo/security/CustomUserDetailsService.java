@@ -8,15 +8,10 @@ import com.hospital_management_system.demo.repository.EmployeeRepository;
 import com.hospital_management_system.demo.repository.PatientRepository;
 import com.hospital_management_system.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
-
-import java.util.Collections;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,26 +21,32 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final PatientRepository patientRepository;
     private final EmployeeRepository employeeRepository;
 
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         Person person = user.getPerson();
-        Rol rol ;
-        if(patientRepository.existsByPerson(person)){
+        Rol rol;
+        Long principalId;
+
+        var patientOpt = patientRepository.findByPerson(person);
+        if (patientOpt.isPresent()) {
             rol = Rol.PATIENT;
-        }else {
+            principalId = patientOpt.get().getId();
+        } else {
             Employee employee = employeeRepository.findByPerson(person)
-                    .orElseThrow(() -> new UsernameNotFoundException("Employee Not Found"));
+                    .orElseThrow(() -> new UsernameNotFoundException(
+                            "No role (Patient/Employee) found for user: " + username));
             rol = employee.getRol();
+            principalId = employee.getId();
         }
 
-        List<SimpleGrantedAuthority> authorityList = Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_" + rol.name())
+        return new HospitalUserDetails(
+                user.getUsername(),
+                user.getId(),
+                principalId,
+                rol
         );
-
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorityList);
     }
 }

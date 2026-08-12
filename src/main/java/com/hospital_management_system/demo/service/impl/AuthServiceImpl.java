@@ -3,6 +3,8 @@ package com.hospital_management_system.demo.service.impl;
 import com.hospital_management_system.demo.dto.request.AuthLoginRequestDto;
 import com.hospital_management_system.demo.dto.request.AuthRegisterRequestDto;
 import com.hospital_management_system.demo.dto.response.AuthResponseDto;
+import com.hospital_management_system.demo.dto.response.PersonResponseDto;
+import com.hospital_management_system.demo.dto.response.UserResponseDto;
 import com.hospital_management_system.demo.exception.BusinessException;
 import com.hospital_management_system.demo.exception.InvalidCredentialsException;
 import com.hospital_management_system.demo.exception.InvalidRequestException;
@@ -45,23 +47,34 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponseDto login(AuthLoginRequestDto request) {
-
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(), request.getPassword())
+                            request.getEmail(), request.getPassword())
             );
         } catch (BadCredentialsException e) {
-            log.warn("Failed login attempt for username={}", request.getUsername());
+            log.warn("Failed login attempt for username={}", request.getEmail());
             throw new InvalidCredentialsException("Invalid username or password");
         }
 
-        String token = jwtUtil.generateToken(request.getUsername());
-        log.info("Successful login for username={}", request.getUsername());
+        User user = userRepository.findByUsername(request.getEmail())
+                .orElseThrow(() -> new BusinessException("User not found"));
+        Person person = user.getPerson();
+        String rol;
+        if (patientRepository.existsByPerson(person)) {
+            rol = Rol.PATIENT.name();
+        } else {
+            Employee employee = employeeRepository.findByPerson(person)
+                    .orElseThrow(() -> new BusinessException("Employee not found"));
+            rol = employee.getRol().name();
+        }
 
+        String token = jwtUtil.generateToken(request.getEmail(), rol);
+        log.info("Successful login for username={}, rol={}", request.getEmail(), rol);
 
         AuthResponseDto response = new AuthResponseDto();
         response.setToken(token);
+        response.setRol(String.valueOf(Rol.valueOf(rol)));
         return response;
     }
 
@@ -69,10 +82,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto register(AuthRegisterRequestDto request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("Username already in use: " + request.getUsername());
+        if (userRepository.existsByUsername(request.getEmail())) {
+            throw new BusinessException("Email already exists");
         }
-
 
         Person person = new Person();
         person.setName(request.getName());
@@ -81,22 +93,57 @@ public class AuthServiceImpl implements AuthService {
         person.setState(State.ACTIVE);
         person = personRepository.save(person);
 
+        // ✅ ROL FORZADO: todos los registros públicos son pacientes
+        Rol forcedRol = Rol.PATIENT;
+        ensureRoleEntity(person, forcedRol);
 
-        ensureRoleEntity(person, request.getRol());
-
+        // ✅ ELIMINADA la duplicación de User
         User user = new User();
-        user.setUsername(request.getUsername());
+        user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPerson(person);
         userRepository.save(user);
 
-        log.info("User registered. username={}, personId={}, rol={}",
-                user.getUsername(), person.getId(), request.getRol());
+        // ✅ Usamos forcedRol en lugar de request.getRol()
+        log.info("User registered as PATIENT. username={}, personId={}",
+                user.getUsername(), person.getId());
 
-        String token = jwtUtil.generateToken(user.getUsername());
-        return new AuthResponseDto(token);
+        // ✅ Usamos forcedRol para generar el token
+        String token = jwtUtil.generateToken(user.getUsername(), forcedRol.name());
+
+        AuthResponseDto response = new AuthResponseDto();
+        response.setToken(token);
+        response.setUsername(user.getUsername());
+        response.setRol(forcedRol.name());
+        return response;
     }
 
+    @Override
+    public UserResponseDto getAuthenticatedUser(String username) {
+        log.info("Getting authenticated user: {}", username);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String rol = getRolForPerson(user.getPerson());
+
+        UserResponseDto dto = new UserResponseDto();
+        dto.setId(user.getId());
+        dto.setUser(user.getUsername());
+        dto.setPerson(mapToPersonResponseDto(user.getPerson()));
+        dto.setRol(Rol.valueOf(rol));
+        return dto;
+    }
+
+    private String getRolForPerson(Person person) {
+        if (patientRepository.existsByPerson(person)) {
+            return Rol.PATIENT.name();
+        } else {
+            Employee employee = employeeRepository.findByPerson(person)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+            return employee.getRol().name();
+        }
+    }
 
     private void ensureRoleEntity(Person person, Rol rol) {
         boolean alreadyPatient = patientRepository.existsByPerson(person);
@@ -118,5 +165,15 @@ public class AuthServiceImpl implements AuthService {
             employee.setState(State.ACTIVE);
             employeeRepository.save(employee);
         }
+    }
+
+    private PersonResponseDto mapToPersonResponseDto(Person person) {
+        PersonResponseDto dto = new PersonResponseDto();
+        dto.setId(person.getId());
+        dto.setName(person.getName());
+        dto.setLastname(person.getLastname());
+        dto.setEmail(person.getEmail());
+        dto.setState(person.getState());
+        return dto;
     }
 }

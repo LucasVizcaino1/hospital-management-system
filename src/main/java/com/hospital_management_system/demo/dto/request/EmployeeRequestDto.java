@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class EmployeeRequestDto {
 
     private Rol rol;
+
+
     private Long personId;
     private State state;
 

@@ -40,7 +40,8 @@ public class AppointmentController {
     })
     @PostMapping
     public ResponseEntity<AppointmentResponseDto> createAppointment(@Valid @RequestBody AppointmentRequestDto requestDto) {
-        log.info("Create appointment request received: {}", requestDto);
+        log.info("Create appointment request received for patientId={}, employeeId={}",
+                requestDto.getPatientId(), requestDto.getEmployeeId());
         AppointmentResponseDto response = appointmentService.createAppointment(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

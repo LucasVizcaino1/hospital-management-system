@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PatientRequestDto {
-    private Rol rol;
     private Long personId;
     private State state;
 }

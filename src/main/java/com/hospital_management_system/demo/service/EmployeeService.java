@@ -20,4 +20,7 @@ public interface EmployeeService {
     void deleteEmployee(Long id);
 
     Optional<EmployeeResponseDto> getEmployeeById(Long id);
+
+    Optional<EmployeeResponseDto> getAuthenticatedEmployee(String username);
+
 }

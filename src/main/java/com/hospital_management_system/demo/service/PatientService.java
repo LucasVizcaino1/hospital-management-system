@@ -23,5 +23,4 @@ public interface PatientService {
 
     List<PatientResponseDto> listAssets();
 
-    Long getIdByUsername(String username);
 }
