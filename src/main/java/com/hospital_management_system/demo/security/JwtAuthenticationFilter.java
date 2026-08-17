@@ -60,7 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 HospitalUserDetails userDetails = new HospitalUserDetails(
-                        username, userId, principalId, rol
+                        username,
+                        null,
+                        userId,
+                        principalId,
+                        rol
                 );
 
                 UsernamePasswordAuthenticationToken authToken =

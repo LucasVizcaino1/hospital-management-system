@@ -4,6 +4,7 @@ import com.hospital_management_system.demo.dto.request.PatientRequestDto;
 import com.hospital_management_system.demo.dto.response.PatientResponseDto;
 import com.hospital_management_system.demo.dto.response.PersonResponseDto;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
+import com.hospital_management_system.demo.mapper.PatientMapper;
 import com.hospital_management_system.demo.model.Patient;
 import com.hospital_management_system.demo.model.Person;
 import com.hospital_management_system.demo.model.Rol;
@@ -28,6 +29,7 @@ public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
     private final PersonRepository personRepository;
+    private final PatientMapper patientMapper;
 
 
     @Override
@@ -38,7 +40,7 @@ public class PatientServiceImpl implements PatientService {
                         "Person not found with id: " + dto.getPersonId()));
 
         Patient patient = new Patient();
-        // ✅ ROL FORZADO EN EL SERVICE
+
         patient.setRol(Rol.PATIENT);
         patient.setState(dto.getState());
         patient.setPerson(person);
@@ -46,7 +48,7 @@ public class PatientServiceImpl implements PatientService {
         patient = patientRepository.save(patient);
 
         log.info("Patient created. id={}, rol=PATIENT (forced)", patient.getId());
-        return toResponse(patient);
+        return patientMapper.toResponse(patient);
     }
 
 
@@ -58,10 +60,6 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Patient not found with id: " + id));
 
-        // ✅ Solo actualizamos el estado, NUNCA el rol
-        if (dto.getState() != null) {
-            patient.setState(dto.getState());
-        }
 
         if (dto.getPersonId() != null && !dto.getPersonId().equals(patient.getPerson().getId())) {
             Person person = personRepository.findById(dto.getPersonId())
@@ -70,9 +68,10 @@ public class PatientServiceImpl implements PatientService {
             patient.setPerson(person);
         }
 
+        patientMapper.update(dto, patient);
         Patient updated = patientRepository.save(patient);
         log.info("Patient updated. id={}", updated.getId());
-        return toResponse(updated);
+        return patientMapper.toResponse(updated);
     }
 
     @Override
@@ -80,7 +79,7 @@ public class PatientServiceImpl implements PatientService {
     public PatientResponseDto getPatientById(Long id) {
         log.info("Getting patient with id={}", id);
         return patientRepository.findById(id)
-                .map(this::toResponse)
+                .map(patientMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
     }
 
@@ -99,14 +98,14 @@ public class PatientServiceImpl implements PatientService {
     @Transactional(readOnly = true)
     public Page<PatientResponseDto> getAllPatients(Pageable pageable) {
         log.info("Listing patients page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
-        return patientRepository.findAll(pageable).map(this::toResponse);
+        return patientRepository.findAll(pageable).map(patientMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PatientResponseDto> getAllPatientsByState(State state, Pageable pageable) {
         log.info("Listing patients by state={}", state);
-        return patientRepository.findByState(state, pageable).map(this::toResponse);
+        return patientRepository.findByState(state, pageable).map(patientMapper::toResponse);
     }
 
     @Override
@@ -114,46 +113,8 @@ public class PatientServiceImpl implements PatientService {
     public List<PatientResponseDto> listAssets() {
         log.info("Listing all active patients");
         return patientRepository.findByState(State.ACTIVE).stream()
-                .map(this::toResponse)
+                .map(patientMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-
-    private Patient toEntity(PatientRequestDto dto) {
-        if (dto == null) return null;
-
-        Patient patient = new Patient();
-        patient.setState(dto.getState());
-        return patient;
-    }
-
-    private PatientResponseDto toResponse(Patient entity) {
-        if (entity == null) return null;
-
-        PatientResponseDto dto = new PatientResponseDto();
-        dto.setId(entity.getId());
-        dto.setRol(entity.getRol());
-        dto.setState(entity.getState());
-        dto.setPerson(toPersonResponse(entity.getPerson()));
-        return dto;
-    }
-
-    private void updateEntity(Patient patient, PatientRequestDto dto) {
-        if (patient == null || dto == null) return;
-
-
-        if (dto.getState() != null) patient.setState(dto.getState());
-    }
-
-    private PersonResponseDto toPersonResponse(Person person) {
-        if (person == null) return null;
-
-        PersonResponseDto p = new PersonResponseDto();
-        p.setId(person.getId());
-        p.setName(person.getName());
-        p.setLastname(person.getLastname());
-        p.setEmail(person.getEmail());
-        p.setState(person.getState());
-        return p;
-    }
 }

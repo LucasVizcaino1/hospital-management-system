@@ -26,4 +26,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Query("SELECT a FROM Appointment a WHERE LOWER(a.reason) LIKE LOWER(CONCAT('%', :reason, '%'))")
     Page<Appointment> searchByReason(@Param("reason") String reason, Pageable pageable);
+
+    boolean existsByEmployeeIdAndStateNotAndDateAfterAndDateBefore(
+            Long employeeId, State state, LocalDateTime after, LocalDateTime before);
+
+
+    boolean existsByIdNotAndEmployeeIdAndStateNotAndDateAfterAndDateBefore(
+            Long id, Long employeeId, State state, LocalDateTime after, LocalDateTime before);
 }

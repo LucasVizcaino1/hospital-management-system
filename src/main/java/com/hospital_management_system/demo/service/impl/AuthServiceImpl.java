@@ -9,6 +9,7 @@ import com.hospital_management_system.demo.exception.BusinessException;
 import com.hospital_management_system.demo.exception.InvalidCredentialsException;
 import com.hospital_management_system.demo.exception.InvalidRequestException;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
+import com.hospital_management_system.demo.mapper.PersonMapper;
 import com.hospital_management_system.demo.model.Employee;
 import com.hospital_management_system.demo.model.Patient;
 import com.hospital_management_system.demo.model.Person;
@@ -30,6 +31,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final PersonRepository personRepository;
     private final PatientRepository patientRepository;
     private final EmployeeRepository employeeRepository;
+    private final PersonMapper personMapper;
 
 
     @Override
@@ -75,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
         AuthResponseDto response = new AuthResponseDto();
         response.setToken(token);
         response.setRol(String.valueOf(Rol.valueOf(rol)));
+        response.setUsername(user.getUsername());
         return response;
     }
 
@@ -86,6 +91,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("Email already exists");
         }
 
+
         Person person = new Person();
         person.setName(request.getName());
         person.setLastname(request.getLastname());
@@ -93,22 +99,18 @@ public class AuthServiceImpl implements AuthService {
         person.setState(State.ACTIVE);
         person = personRepository.save(person);
 
-        // ✅ ROL FORZADO: todos los registros públicos son pacientes
         Rol forcedRol = Rol.PATIENT;
         ensureRoleEntity(person, forcedRol);
 
-        // ✅ ELIMINADA la duplicación de User
         User user = new User();
         user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPerson(person);
         userRepository.save(user);
 
-        // ✅ Usamos forcedRol en lugar de request.getRol()
         log.info("User registered as PATIENT. username={}, personId={}",
                 user.getUsername(), person.getId());
 
-        // ✅ Usamos forcedRol para generar el token
         String token = jwtUtil.generateToken(user.getUsername(), forcedRol.name());
 
         AuthResponseDto response = new AuthResponseDto();
@@ -118,29 +120,31 @@ public class AuthServiceImpl implements AuthService {
         return response;
     }
 
+
     @Override
     public UserResponseDto getAuthenticatedUser(String username) {
         log.info("Getting authenticated user: {}", username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String rol = getRolForPerson(user.getPerson());
 
         UserResponseDto dto = new UserResponseDto();
         dto.setId(user.getId());
         dto.setUser(user.getUsername());
-        dto.setPerson(mapToPersonResponseDto(user.getPerson()));
+        dto.setPerson(personMapper.toResponse(user.getPerson()));
         dto.setRol(Rol.valueOf(rol));
         return dto;
     }
+
 
     private String getRolForPerson(Person person) {
         if (patientRepository.existsByPerson(person)) {
             return Rol.PATIENT.name();
         } else {
             Employee employee = employeeRepository.findByPerson(person)
-                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
             return employee.getRol().name();
         }
     }
@@ -167,13 +171,5 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private PersonResponseDto mapToPersonResponseDto(Person person) {
-        PersonResponseDto dto = new PersonResponseDto();
-        dto.setId(person.getId());
-        dto.setName(person.getName());
-        dto.setLastname(person.getLastname());
-        dto.setEmail(person.getEmail());
-        dto.setState(person.getState());
-        return dto;
-    }
+
 }

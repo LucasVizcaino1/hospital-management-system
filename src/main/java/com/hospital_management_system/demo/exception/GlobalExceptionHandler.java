@@ -20,6 +20,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+
+    @ExceptionHandler(AppointmentOverlapException.class)
+    public ResponseEntity<Map<String, Object>> handleAppointmentOverlap(AppointmentOverlapException ex) {
+        log.warn("Error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String,Object>> handleBusinessException(BusinessException ex){
         log.error("Error de negocio: {}", ex.getMessage());

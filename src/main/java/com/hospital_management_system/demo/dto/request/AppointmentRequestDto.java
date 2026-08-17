@@ -13,8 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class AppointmentRequestDto {
 
-    @NotNull
-    private LocalDateTime time;
 
     @NotNull
     @Size(max = 500)

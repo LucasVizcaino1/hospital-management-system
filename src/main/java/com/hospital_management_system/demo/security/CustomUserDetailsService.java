@@ -44,6 +44,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new HospitalUserDetails(
                 user.getUsername(),
+                user.getPassword(),
                 user.getId(),
                 principalId,
                 rol

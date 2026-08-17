@@ -13,12 +13,15 @@ import java.util.Collections;
 public class HospitalUserDetails implements UserDetails {
 
     private final String username;
+    private final String password;
     private final Long userId;
-    private final Long principalId;  // patientId o employeeId
+    private final Long principalId;
     private final Rol rol;
 
-    public HospitalUserDetails(String username, Long userId, Long principalId, Rol rol) {
+    public HospitalUserDetails(String username, String password,
+                               Long userId, Long principalId, Rol rol) {
         this.username = username;
+        this.password = password;
         this.userId = userId;
         this.principalId = principalId;
         this.rol = rol;
@@ -33,7 +36,7 @@ public class HospitalUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return "";  // Stateless: no necesitamos la contraseña después del login
+        return this.password;
     }
 
     @Override

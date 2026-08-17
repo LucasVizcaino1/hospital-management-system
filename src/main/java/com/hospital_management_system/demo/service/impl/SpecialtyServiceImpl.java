@@ -3,6 +3,7 @@ package com.hospital_management_system.demo.service.impl;
 import com.hospital_management_system.demo.dto.request.SpecialtyRequestDto;
 import com.hospital_management_system.demo.dto.response.SpecialtyResponseDto;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
+import com.hospital_management_system.demo.mapper.SpecialtyMapper;
 import com.hospital_management_system.demo.model.Specialty;
 import com.hospital_management_system.demo.model.State;
 import com.hospital_management_system.demo.repository.SpecialtyRepository;
@@ -20,61 +21,63 @@ import org.springframework.transaction.annotation.Transactional;
 public class SpecialtyServiceImpl implements SpecialtyService {
 
     private final SpecialtyRepository specialtyRepository;
+    private final SpecialtyMapper specialtyMapper;
 
     @Override
     @Transactional
     public SpecialtyResponseDto createSpecialty(SpecialtyRequestDto requestDto) {
-        Specialty especialidad = toEntity(requestDto);
+        Specialty especialidad = specialtyMapper.toEntity(requestDto);
         especialidad = specialtyRepository.save(especialidad);
 
-        log.info("Especialidad creada. id={}", especialidad.getId());
-        return toResponse(especialidad);
+        log.info("Specialty created. id={}", especialidad.getId());
+        return specialtyMapper.toResponse(especialidad);
     }
 
     @Override
     @Transactional
     public SpecialtyResponseDto updateSpecialty(Long id, SpecialtyRequestDto requestDto) {
-        Specialty especialidad = specialtyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id: " + id));
+        Specialty specialty = specialtyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Specialty not found with id: " + id));
 
-        updateEntity(especialidad, requestDto);
-        Specialty updatEspecialidad = specialtyRepository.save(especialidad);
 
-        log.info("Especialidad actualizada. id={}", especialidad.getId());
-        return toResponse(updatEspecialidad);
+        specialtyMapper.update(requestDto, specialty);
+        Specialty updateSpecialty = specialtyRepository.save(specialty);
+
+        log.info("Specialty updated. id={}", specialty.getId());
+        return specialtyMapper.toResponse(updateSpecialty);
     }
 
     @Override
     @Transactional
     public void deleteSpecialty(Long id) {
-        Specialty especialidad = specialtyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id: " + id));
+        Specialty specialty = specialtyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Specialty not found with id: " + id));
 
-        specialtyRepository.delete(especialidad);
+        specialtyRepository.delete(specialty);
 
-        log.info("Especialidad eliminada. id={}", id);
+        log.info("Specialty deleted. id={}", id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public SpecialtyResponseDto getById(Long id) {
         return specialtyRepository.findById(id)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id: " + id));
+                .map(specialtyMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException( "Specialty not found with id: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<SpecialtyResponseDto> getAllSpecialties(Pageable pageable) {
         return specialtyRepository.findAll(pageable)
-                .map(this::toResponse);
+                .map(specialtyMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SpecialtyResponseDto> searchByName(String nombre, Pageable pageable) {
-        return specialtyRepository.searchByName(nombre, pageable)
-                .map(this::toResponse);
+    public Page<SpecialtyResponseDto> searchByName(String name, Pageable pageable) {
+        return specialtyRepository.searchByName(name, pageable)
+                .map(specialtyMapper::toResponse);
     }
 
     @Override
@@ -84,35 +87,11 @@ public class SpecialtyServiceImpl implements SpecialtyService {
         try {
             state = State.valueOf(stateStr.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Estado inválido: " + stateStr);
+            throw new IllegalArgumentException("Invalid state: " + stateStr);
         }
-        return specialtyRepository.findByState(state, pageable).map(this::toResponse);
+        return specialtyRepository.findByState(state, pageable).map(specialtyMapper::toResponse);
     }
 
 
-    private Specialty toEntity(SpecialtyRequestDto dto) {
-        if (dto == null) return null;
 
-        Specialty specialty = new Specialty();
-        specialty.setName(dto.getName());
-        specialty.setState(dto.getState());
-        return specialty;
-    }
-
-    private SpecialtyResponseDto toResponse(Specialty entity) {
-        if (entity == null) return null;
-
-        SpecialtyResponseDto dto = new SpecialtyResponseDto();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setState(entity.getState());
-        return dto;
-    }
-
-    private void updateEntity(Specialty specialty, SpecialtyRequestDto dto) {
-        if (specialty == null || dto == null) return;
-
-        if (dto.getName() != null)  specialty.setName(dto.getName());
-        if (dto.getState() != null) specialty.setState(dto.getState());
-    }
 }

@@ -3,6 +3,7 @@ package com.hospital_management_system.demo.service.impl;
 import com.hospital_management_system.demo.dto.request.PersonRequestDto;
 import com.hospital_management_system.demo.dto.response.PersonResponseDto;
 import com.hospital_management_system.demo.exception.ResourceNotFoundException;
+import com.hospital_management_system.demo.mapper.PersonMapper;
 import com.hospital_management_system.demo.model.Person;
 import com.hospital_management_system.demo.model.State;
 import com.hospital_management_system.demo.repository.PersonRepository;
@@ -22,14 +23,16 @@ import java.util.Optional;
 public class PersonServiceImpl implements PersonService {
 
     private final PersonRepository personRepository;
+    private final PersonMapper personMapper;
+
 
     @Override
     @Transactional
     public PersonResponseDto createPerson(PersonRequestDto requestDto) {
-        Person person = toEntity(requestDto);
+        Person person = personMapper.toEntity(requestDto);
         person = personRepository.save(person);
         log.info("Person created. id={}", person.getId());
-        return toResponse(person);
+        return personMapper.toResponse(person);
     }
 
     @Override
@@ -37,7 +40,7 @@ public class PersonServiceImpl implements PersonService {
     public PersonResponseDto getPersonById(Long id) {
         log.info("Getting person with id={}", id);
         return personRepository.findById(id)
-                .map(this::toResponse)
+                .map(personMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + id));
     }
 
@@ -45,28 +48,28 @@ public class PersonServiceImpl implements PersonService {
     @Transactional(readOnly = true)
     public Page<PersonResponseDto> getAllPersons(Pageable pageable) {
         log.info("Listing all persons, page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
-        return personRepository.findAll(pageable).map(this::toResponse);
+        return personRepository.findAll(pageable).map(personMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PersonResponseDto> getPersonsByState(State state, Pageable pageable) {
         log.info("Listing persons by state={}", state);
-        return personRepository.findByState(state, pageable).map(this::toResponse);
+        return personRepository.findByState(state, pageable).map(personMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PersonResponseDto> searchByName(String name, Pageable pageable) {
         log.info("Searching persons with name={}", name);
-        return personRepository.searchByName(name, pageable).map(this::toResponse);
+        return personRepository.searchByName(name, pageable).map(personMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<PersonResponseDto> findByEmail(String email) {
         log.info("Finding person by email={}", email);
-        return personRepository.findByEmail(email).map(this::toResponse);
+        return personRepository.findByEmail(email).map(personMapper::toResponse);
     }
 
     @Override
@@ -76,11 +79,11 @@ public class PersonServiceImpl implements PersonService {
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + id));
 
-        updateEntity(person, requestDto);
+        personMapper.update(requestDto, person);
 
         Person updated = personRepository.save(person);
         log.info("Person updated. id={}", updated.getId());
-        return toResponse(updated);
+        return personMapper.toResponse(updated);
     }
 
     @Override
@@ -94,35 +97,5 @@ public class PersonServiceImpl implements PersonService {
     }
 
 
-    private Person toEntity(PersonRequestDto dto) {
-        if (dto == null) return null;
 
-        Person person = new Person();
-        person.setName(dto.getName());
-        person.setLastname(dto.getLastname());
-        person.setEmail(dto.getEmail());
-        person.setState(dto.getState());
-        return person;
-    }
-
-    private PersonResponseDto toResponse(Person entity) {
-        if (entity == null) return null;
-
-        PersonResponseDto dto = new PersonResponseDto();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setLastname(entity.getLastname());
-        dto.setEmail(entity.getEmail());
-        dto.setState(entity.getState());
-        return dto;
-    }
-
-    private void updateEntity(Person person, PersonRequestDto dto) {
-        if (person == null || dto == null) return;
-
-        if (dto.getName() != null)     person.setName(dto.getName());
-        if (dto.getLastname() != null) person.setLastname(dto.getLastname());
-        if (dto.getEmail() != null)    person.setEmail(dto.getEmail());
-        if (dto.getState() != null)    person.setState(dto.getState());
-    }
 }
